@@ -1,7 +1,7 @@
 package com.zzztie.careerhub.domain;
 
 
-public class BaseEntity {
+public abstract class BaseEntity {
     private Long id;
 
     public BaseEntity() {
@@ -22,5 +22,7 @@ public class BaseEntity {
     public void printInfo() {
         System.out.println("id=" + id);
     }
+
+    public abstract String getEntityType();
 
 }

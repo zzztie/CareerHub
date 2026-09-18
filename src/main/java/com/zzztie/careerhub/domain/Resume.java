@@ -1,6 +1,8 @@
 package com.zzztie.careerhub.domain;
 
-public class Resume extends BaseEntity{
+import com.zzztie.careerhub.service.Describable;
+
+public class Resume extends BaseEntity implements Describable {
     private Long userId;
     private String fileName;
     private String filePath;
@@ -46,4 +48,15 @@ public class Resume extends BaseEntity{
         System.out.println("filename="+fileName);
         System.out.println("filepath="+filePath);
     }
+
+    @Override
+    public String getEntityType() {
+        return "RESUME";
+    }
+
+    @Override
+    public String getSummary(){
+        return "Resume:"+getFilename()+",userId="+getUserId();
+    }
+
 }

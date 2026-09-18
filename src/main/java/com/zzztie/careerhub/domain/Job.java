@@ -1,6 +1,8 @@
 package com.zzztie.careerhub.domain;
 
-public class Job extends BaseEntity{
+import com.zzztie.careerhub.service.Describable;
+
+public class Job extends BaseEntity implements Describable {
     private String title;
     private String company;
     private String description;
@@ -46,4 +48,15 @@ public class Job extends BaseEntity{
         System.out.println("company="+company);
         System.out.println("description="+description);
     }
+
+    @Override
+    public String getEntityType() {
+        return "JOB";
+    }
+
+    @Override
+    public String getSummary(){
+        return "Job:"+getTitle()+"at"+getCompany();
+    }
+
 }

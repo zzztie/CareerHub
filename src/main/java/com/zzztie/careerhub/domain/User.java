@@ -1,6 +1,8 @@
 package com.zzztie.careerhub.domain;
+import com.zzztie.careerhub.exception.UserValidationException;
+import com.zzztie.careerhub.service.Describable;
 
-public class User extends BaseEntity{
+public class User extends BaseEntity implements Describable {
     private String username;
     private String email;
 
@@ -25,6 +27,9 @@ public class User extends BaseEntity{
     }
 
     public void setUsername(String username) {
+        if (username == null || username.isBlank()) {
+            throw new UserValidationException("username cannot be blank");
+        }
         this.username = username;
     }
 
@@ -43,6 +48,16 @@ public class User extends BaseEntity{
     public void updateProfile(String username, String email) {
         this.username = username;
         this.email = email;
+    }
+
+    @Override
+    public String getEntityType(){
+        return "User";
+    }
+
+    @Override
+    public String getSummary() {
+        return "User: " + getUsername();
     }
 
 }
