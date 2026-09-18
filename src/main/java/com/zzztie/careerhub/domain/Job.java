@@ -1,7 +1,6 @@
 package com.zzztie.careerhub.domain;
 
-public class Job {
-    private Long id;
+public class Job extends BaseEntity{
     private String title;
     private String company;
     private String description;
@@ -10,18 +9,10 @@ public class Job {
     }
 
     public Job(Long id, String title, String company, String description) {
-        this.id = id;
+        super(id);
         this.title = title;
         this.company = company;
         this.description = description;
-    }
-
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
     }
 
     public String getTitle() {
@@ -48,8 +39,9 @@ public class Job {
         this.description = description;
     }
 
+    @Override
     public void printInfo(){
-        System.out.println("id="+id);
+        super.printInfo();
         System.out.println("title="+title);
         System.out.println("company="+company);
         System.out.println("description="+description);

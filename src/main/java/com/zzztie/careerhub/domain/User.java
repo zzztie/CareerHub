@@ -1,7 +1,6 @@
 package com.zzztie.careerhub.domain;
 
-public class User {
-    private Long id;
+public class User extends BaseEntity{
     private String username;
     private String email;
 
@@ -9,23 +8,16 @@ public class User {
     }
 
     public User(Long id,String username,String email){
-        this.id=id;
+        super(id);
         this.username=username;
         this.email=email;
     }
 
+    @Override
     public void printInfo(){
-        System.out.println("id="+id);
+        super.printInfo();
         System.out.println("username="+username);
         System.out.println("email="+email);
-    }
-
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
     }
 
     public String getUsername() {
@@ -43,4 +35,14 @@ public class User {
     public void setEmail(String email) {
         this.email = email;
     }
+
+    public void updateProfile(String username) {
+        this.username = username;
+    }
+
+    public void updateProfile(String username, String email) {
+        this.username = username;
+        this.email = email;
+    }
+
 }

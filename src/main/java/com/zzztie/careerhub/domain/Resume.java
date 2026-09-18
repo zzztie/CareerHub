@@ -1,7 +1,6 @@
 package com.zzztie.careerhub.domain;
 
-public class Resume {
-    private Long id;
+public class Resume extends BaseEntity{
     private Long userId;
     private String fileName;
     private String filePath;
@@ -10,18 +9,10 @@ public class Resume {
     }
 
     public Resume(String filepath, String filename, Long userId, Long id) {
+        super(id);
         this.filePath = filepath;
         this.fileName = filename;
         this.userId = userId;
-        this.id = id;
-    }
-
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
     }
 
     public Long getUserId() {
@@ -48,8 +39,9 @@ public class Resume {
         this.filePath = filepath;
     }
 
+    @Override
     public void printInfo(){
-        System.out.println("id="+id);
+        super.printInfo();
         System.out.println("userId="+userId);
         System.out.println("filename="+fileName);
         System.out.println("filepath="+filePath);
