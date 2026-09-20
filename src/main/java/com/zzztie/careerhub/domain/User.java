@@ -1,10 +1,22 @@
 package com.zzztie.careerhub.domain;
+import com.zzztie.careerhub.enums.UserStatus;
 import com.zzztie.careerhub.exception.UserValidationException;
 import com.zzztie.careerhub.service.Describable;
+
+import java.util.Objects;
 
 public class User extends BaseEntity implements Describable {
     private String username;
     private String email;
+    private UserStatus status;
+
+    public UserStatus getStatus() {
+        return status;
+    }
+
+    public void setStatus(UserStatus status) {
+        this.status = status;
+    }
 
     public User(){ //无参构造器
     }
@@ -58,6 +70,23 @@ public class User extends BaseEntity implements Describable {
     @Override
     public String getSummary() {
         return "User: " + getUsername();
+    }
+
+    @Override
+    public boolean equals(Object obj){
+        if(this == obj){//看是不是同个对象
+            return true;
+        }
+        if(!(obj instanceof User)){
+            return false;
+        }
+        User user = (User) obj;
+        return Objects.equals(getId(), user.getId());
+    }
+
+    @Override
+    public int hashCode(){
+        return Objects.hashCode(getId());
     }
 
 }
