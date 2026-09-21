@@ -1,4 +1,4 @@
-# CareerHub TODO
+# CareerHub Project TODO
 
 - [ ] 接入 Spring Boot
 - [ ] 接入 MySQL
