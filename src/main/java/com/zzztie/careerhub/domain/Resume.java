@@ -1,7 +1,5 @@
 package com.zzztie.careerhub.domain;
 
-import com.zzztie.careerhub.service.Describable;
-
 public class Resume extends BaseEntity implements Describable {
     private Long userId;
     private String fileName;

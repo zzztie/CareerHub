@@ -1,32 +1,35 @@
-package com.zzztie.careerhub.service;
+package com.zzztie.careerhub.service.impl;
 
 import com.zzztie.careerhub.domain.User;
 import com.zzztie.careerhub.enums.UserStatus;
 import com.zzztie.careerhub.exception.UserNotFoundException;
+import com.zzztie.careerhub.repository.UserRepository;
+import com.zzztie.careerhub.service.UserService;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 public class UserServiceImpl implements UserService {
-    private final Map<Long, User> users = new HashMap<>();
+
+    private final UserRepository userRepository;
+
+    public UserServiceImpl(UserRepository userRepository) {
+        this.userRepository = userRepository;
+    }
 
     @Override
     public User createUser(User user) {
-        if(users.containsKey(user.getId())){
+        if(userRepository.existsById(user.getId())){
             throw new IllegalArgumentException("user id already exists");
         }
         user.setUpdateTime(LocalDateTime.now());
         user.setStatus(UserStatus.ACTIVE);
-        users.put(user.getId(),user);
-        return user;
+        return userRepository.save(user);
     }
 
     @Override
     public User getUserById(Long id) {
-        User user=users.get(id);
+        User user = userRepository.findById(id);
         if(user == null){
             throw new UserNotFoundException(id);
         }
@@ -35,25 +38,20 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public User updateUser(User user) {
-        if(!users.containsKey(user.getId())){
+        if(!userRepository.existsById(user.getId())){
             throw new UserNotFoundException(user.getId());
         }
         user.setUpdateTime(LocalDateTime.now());
-        users.put(user.getId(),user);
-        return user;
+        return userRepository.save(user);
     }
 
     @Override
     public boolean deleteUser(Long id) {
-        if(!users.containsKey(id)){
-            throw new IllegalArgumentException("user not found");
-        }
-        users.remove(id);
-        return true;
+        return userRepository.deleteById(id);
     }
 
     @Override
     public List<User> getAllUsers() {
-        return new ArrayList<>(users.values());
+        return userRepository.findAll();
     }
 }

@@ -1,7 +1,5 @@
 package com.zzztie.careerhub.domain;
 
-import com.zzztie.careerhub.service.Describable;
-
 public class Job extends BaseEntity implements Describable {
     private String title;
     private String company;

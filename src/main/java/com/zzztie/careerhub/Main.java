@@ -1,23 +1,26 @@
 package com.zzztie.careerhub;
 
-import com.zzztie.careerhub.algorithm.Box;
 import com.zzztie.careerhub.domain.BaseEntity;
 import com.zzztie.careerhub.domain.Job;
 import com.zzztie.careerhub.domain.Resume;
 import com.zzztie.careerhub.domain.User;
-import com.zzztie.careerhub.enums.UserStatus;
-import com.zzztie.careerhub.exception.UserNotFoundException;
-import com.zzztie.careerhub.exception.UserValidationException;
-import com.zzztie.careerhub.service.Describable;
+import com.zzztie.careerhub.repository.JobRepository;
+import com.zzztie.careerhub.repository.ResumeRepository;
+import com.zzztie.careerhub.repository.UserRepository;
+import com.zzztie.careerhub.repository.memory.MemoryJobRepository;
+import com.zzztie.careerhub.repository.memory.MemoryResumeRepository;
+import com.zzztie.careerhub.repository.memory.MemoryUserRepository;
+import com.zzztie.careerhub.service.JobService;
+import com.zzztie.careerhub.service.ResumeService;
 import com.zzztie.careerhub.service.UserService;
-import com.zzztie.careerhub.service.UserServiceImpl;
+import com.zzztie.careerhub.service.impl.JobServiceImpl;
+import com.zzztie.careerhub.service.impl.ResumeServiceImpl;
+import com.zzztie.careerhub.service.impl.UserServiceImpl;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.Comparator;
 
 public class Main {
+    private static final Comparator<User> USER_ID_DESC=Comparator.comparing(User::getId).reversed();
     public static void main(String[] args) {
 //        User user1=new User();
 //        user1.setId(1L);
@@ -174,20 +177,93 @@ public class Main {
 //        user.setUsername("TomNew");
 //        userService.updateUser(user);
 //        System.out.println(user.getUpdateTime());
+//
+//        User user = new User(1L, "Tom", "tom@example.com");
+//        UserService userService = new UserServiceImpl();
+//        userService.createUser(user);
+//        System.out.println(user.getStatus());
+//        System.out.println(user.getCreateTime());
+//        System.out.println(user.getUpdateTime());
+//        user.setStatus(UserStatus.DISABLED);
+//        System.out.println(user.getUpdateTime());
+//        try {
+//            userService.getUserById(999L);
+//        }catch (UserNotFoundException e){
+//            System.out.println("[ERROR]"+e.getMessage());
+//        }
 
-        User user = new User(1L, "Tom", "tom@example.com");
-        UserService userService = new UserServiceImpl();
-        userService.createUser(user);
-        System.out.println(user.getStatus());
-        System.out.println(user.getCreateTime());
-        System.out.println(user.getUpdateTime());
-        user.setStatus(UserStatus.DISABLED);
-        System.out.println(user.getUpdateTime());
-        try {
-            userService.getUserById(999L);
-        }catch (UserNotFoundException e){
-            System.out.println("[ERROR]"+e.getMessage());
+//        User user1 = new User(1L, "Tom", "tom@example.com");
+//        User user2 = new User(2L, "Alice", "alice@example.com");
+//        User user3 = new User(3L, "Bob", "bob@example.com");
+//        user1.setStatus(UserStatus.ACTIVE);
+//        user2.setStatus(UserStatus.DISABLED);
+//        user3.setStatus(UserStatus.ACTIVE);
+//        List<User> users = new ArrayList<>(List.of(user1,user2,user3));
+//        List<String> activeUsername = users.stream()
+//                .filter(user -> user.getStatus() == UserStatus.ACTIVE)
+//                .sorted(Comparator.comparing(User :: getId))
+//                .map(User :: getUsername)
+//                .toList();
+
+//        User user1 = new User(1L, "Tom", "tom@example.com");
+//        User user2 = new User(2L, "Alice", "alice@example.com");
+//        User user3 = new User(3L, "Bob", "bob@example.com");
+//        UserRepository userRepository = new MemoryUserRepository();
+//        UserService userService = new UserServiceImpl(userRepository);
+//        userService.createUser(user1);
+//        userService.createUser(user2);
+//        userService.createUser(user3);
+//        for (User allUser : userService.getAllUsers()) {
+//            System.out.println(allUser.getId()+":"+allUser.getUsername());
+//        }
+//        userRepository.deleteById(2L);
+//        for (User allUser : userService.getAllUsers()) {
+//            System.out.println(allUser.getId()+":"+allUser.getUsername());
+//        }
+//        User user = userService.getUserById(1L);
+//        user.setUsername("TomNew");
+//        userService.updateUser(user);
+//        User updateUser = userService.getUserById(1L);
+//        System.out.println(
+//                updateUser.getId()+":"+updateUser.getUsername());
+
+//        User user1 = new User(1L, "Tom", "tom@example.com");
+//        UserRepository userRepository = new MemoryUserRepository();
+//        UserService userService = new UserServiceImpl(userRepository);
+//        userService.createUser(user1);
+//        ResumeRepository resumeRepository = new MemoryResumeRepository();
+//        ResumeService resumeService = new ResumeServiceImpl(resumeRepository,userRepository);
+//        Resume resume1 = new Resume("D/zzztie","java后端开发",1L,1L);
+//        resumeService.createResume(resume1);
+//        Resume resume2 = new Resume("D/royle","具身机器人开发",1L,2L);
+//        resumeService.createResume(resume2);
+//        for (Resume resume : resumeService.getResumeByUserId(user1.getId())) {
+//            System.out.println(resume.getId()+resume.getFilename()+" "+resume.getUserId());
+//        }
+//        resumeService.deleteResume(2L);
+//        for (Resume resume : resumeService.getResumeByUserId(user1.getId())) {
+//            System.out.println(resume.getId()+resume.getFilename()+" "+resume.getUserId());
+//        }
+
+        JobRepository jobRepository = new MemoryJobRepository();
+        JobService jobService = new JobServiceImpl(jobRepository);
+        Job job1 = new Job(1L,"开发人员","ByteDance","实习生");
+        Job job2 = new Job(2L,"行政人员","ByteDance","就职两年");
+        jobService.createJob(job1);
+        jobService.createJob(job2);
+        System.out.println(jobService.getJobById(1L));
+        System.out.println(jobService.getJobById(2L));
+//        jobService.updateJob()
+        for (Job allJob : jobService.getAllJobs()) {
+            System.out.println(allJob.getId()+" "+allJob.getTitle());
         }
+        jobService.deleteJob(2L);
+        for (Job allJob : jobService.getAllJobs()) {
+            System.out.println(allJob.getId()+" "+allJob.getTitle());
+        }
+
+
+
 
     }
 

@@ -1,7 +1,6 @@
 package com.zzztie.careerhub.domain;
 import com.zzztie.careerhub.enums.UserStatus;
 import com.zzztie.careerhub.exception.UserValidationException;
-import com.zzztie.careerhub.service.Describable;
 
 import java.util.Objects;
 
