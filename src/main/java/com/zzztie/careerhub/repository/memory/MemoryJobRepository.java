@@ -3,12 +3,13 @@ package com.zzztie.careerhub.repository.memory;
 import com.zzztie.careerhub.domain.Job;
 import com.zzztie.careerhub.exception.JobNotFoundException;
 import com.zzztie.careerhub.repository.JobRepository;
+import org.springframework.stereotype.Repository;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
+@Repository
 public class MemoryJobRepository implements JobRepository {
     private final Map<Long,Job> jobs =new HashMap<>();
     @Override

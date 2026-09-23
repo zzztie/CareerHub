@@ -5,12 +5,13 @@ import com.zzztie.careerhub.enums.UserStatus;
 import com.zzztie.careerhub.exception.UserNotFoundException;
 import com.zzztie.careerhub.repository.UserRepository;
 import com.zzztie.careerhub.service.UserService;
+import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.List;
-
+@Service
 public class UserServiceImpl implements UserService {
-
+    private long nextUserId = 1L;
     private final UserRepository userRepository;
 
     public UserServiceImpl(UserRepository userRepository) {
@@ -19,11 +20,11 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public User createUser(User user) {
-        if(userRepository.existsById(user.getId())){
-            throw new IllegalArgumentException("user id already exists");
-        }
-        user.setUpdateTime(LocalDateTime.now());
+        user.setId(nextUserId++);
         user.setStatus(UserStatus.ACTIVE);
+        LocalDateTime now = LocalDateTime.now();
+        user.setCreateTime(now);
+        user.setUpdateTime(now);
         return userRepository.save(user);
     }
 

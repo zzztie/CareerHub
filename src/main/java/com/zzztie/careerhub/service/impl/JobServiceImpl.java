@@ -4,9 +4,10 @@ import com.zzztie.careerhub.domain.Job;
 import com.zzztie.careerhub.exception.JobNotFoundException;
 import com.zzztie.careerhub.repository.JobRepository;
 import com.zzztie.careerhub.service.JobService;
+import org.springframework.stereotype.Service;
 
 import java.util.List;
-
+@Service
 public class JobServiceImpl implements JobService {
     private final JobRepository jobRepository;
 

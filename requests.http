@@ -1,0 +1,20 @@
+### 创建用户
+POST http://localhost:8080/users
+Content-Type: application/json
+
+{
+  "username": "Tom",
+  "email": "tom@111.com"
+}
+
+### 查询单个用户
+GET http://localhost:8080/users/1
+
+### 查询全部用户
+GET http://localhost:8080/users
+
+### 删除用户
+DELETE http://localhost:8080/users/1
+
+###
+GET http://localhost:8080/hello-user?name=Tom

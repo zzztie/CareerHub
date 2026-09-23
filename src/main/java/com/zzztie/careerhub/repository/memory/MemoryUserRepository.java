@@ -2,12 +2,13 @@ package com.zzztie.careerhub.repository.memory;
 
 import com.zzztie.careerhub.domain.User;
 import com.zzztie.careerhub.repository.UserRepository;
+import org.springframework.stereotype.Repository;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
+@Repository
 public class MemoryUserRepository implements UserRepository {
     private final Map<Long, User> users =new HashMap<>();
 
