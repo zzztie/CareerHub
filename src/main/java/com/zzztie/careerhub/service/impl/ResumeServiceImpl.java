@@ -5,24 +5,25 @@ import com.zzztie.careerhub.domain.User;
 import com.zzztie.careerhub.exception.ResumeNotFoundException;
 import com.zzztie.careerhub.exception.UserNotFoundException;
 import com.zzztie.careerhub.repository.ResumeRepository;
-import com.zzztie.careerhub.repository.UserRepository;
 import com.zzztie.careerhub.service.ResumeService;
+import com.zzztie.careerhub.service.UserService;
 
 import java.util.List;
 
 public class ResumeServiceImpl implements ResumeService {
     private final ResumeRepository resumeRepository;
-    private final UserRepository userRepository;
+    private final UserService userService;
 
-    public ResumeServiceImpl(ResumeRepository resumeRepository, UserRepository userRepository) {
+    public ResumeServiceImpl(ResumeRepository resumeRepository, UserService userService) {
         this.resumeRepository = resumeRepository;
-        this.userRepository = userRepository;
+        this.userService = userService;
     }
 
 
     @Override
     public Resume createResume(Resume resume) {
-        if(!userRepository.existsById(resume.getUserId())){
+        User exsitingUser = userService.getUserById(resume.getUserId());
+        if(exsitingUser == null){
             throw new UserNotFoundException(resume.getUserId());
         }
         if (resumeRepository.existsById(resume.getId())) {
@@ -42,7 +43,8 @@ public class ResumeServiceImpl implements ResumeService {
 
     @Override
     public List<Resume> getResumeByUserId(Long userId) {
-        if(!userRepository.existsById(userId)){
+        User existingUser = userService.getUserById(userId);
+        if(existingUser == null){
             throw new UserNotFoundException(userId);
         }
         return resumeRepository.findByUserId(userId);

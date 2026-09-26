@@ -1,9 +1,11 @@
 package com.zzztie.careerhub.domain;
+import com.baomidou.mybatisplus.annotation.TableName;
 import com.zzztie.careerhub.enums.UserStatus;
 import com.zzztie.careerhub.exception.UserValidationException;
 
 import java.util.Objects;
 
+@TableName("user")
 public class User extends BaseEntity implements Describable {
     private String username;
     private String email;

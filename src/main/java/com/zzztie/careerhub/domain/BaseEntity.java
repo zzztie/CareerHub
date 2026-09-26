@@ -2,8 +2,11 @@ package com.zzztie.careerhub.domain;
 
 
 import java.time.LocalDateTime;
+import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableId;
 
 public abstract class BaseEntity {
+    @TableId(value = "id", type = IdType.AUTO)
     private Long id;
     private LocalDateTime createTime = LocalDateTime.now();
     private LocalDateTime updateTime = LocalDateTime.now();

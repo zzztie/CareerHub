@@ -2,20 +2,11 @@ package com.zzztie.careerhub;
 
 import com.zzztie.careerhub.domain.BaseEntity;
 import com.zzztie.careerhub.domain.Job;
-import com.zzztie.careerhub.domain.Resume;
 import com.zzztie.careerhub.domain.User;
 import com.zzztie.careerhub.repository.JobRepository;
-import com.zzztie.careerhub.repository.ResumeRepository;
-import com.zzztie.careerhub.repository.UserRepository;
 import com.zzztie.careerhub.repository.memory.MemoryJobRepository;
-import com.zzztie.careerhub.repository.memory.MemoryResumeRepository;
-import com.zzztie.careerhub.repository.memory.MemoryUserRepository;
 import com.zzztie.careerhub.service.JobService;
-import com.zzztie.careerhub.service.ResumeService;
-import com.zzztie.careerhub.service.UserService;
 import com.zzztie.careerhub.service.impl.JobServiceImpl;
-import com.zzztie.careerhub.service.impl.ResumeServiceImpl;
-import com.zzztie.careerhub.service.impl.UserServiceImpl;
 
 import java.util.Comparator;
 
