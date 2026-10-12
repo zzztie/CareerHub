@@ -36,3 +36,12 @@ build/
 
 ### Mac OS ###
 .DS_Store
+
+# 本地 HTTP 接口调试（包含 Token 等敏感信息）
+/requests.http
+
+# 本地测试 PDF
+/test_2.pdf
+
+# 用户上传文件
+/uploads/
