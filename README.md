@@ -1,743 +1,271 @@
-# CareerHub
+# CareerHub｜求职岗位与简历管理后端
 
-CareerHub is a Java backend project for career, resume, and job management.
+> **版本状态：v1.0 发布候选版（Release Candidate）** · Maven 项目版本：`1.0-SNAPSHOT`  
+> 一个以 Java、Spring Boot 为核心的求职管理后端实践项目，围绕用户、岗位、简历与认证构建 REST API，并通过 Redis 缓存、自动化测试和性能对照实验提升工程质量。
 
-The project is developed step by step as a practical backend project.  
-The current version focuses on completing the basic backend workflow of the **User module**, including REST APIs, MySQL persistence, conditional queries, and pagination.
+## 目录
 
----
+- [项目介绍](#项目介绍)
+- [核心功能](#核心功能)
+- [技术栈](#技术栈)
+- [系统架构](#系统架构)
+- [技术设计要点](#技术设计要点)
+- [主要 API](#主要-api)
+- [数据库与项目结构](#数据库与项目结构)
+- [本地启动](#本地启动)
+- [自动化测试](#自动化测试)
+- [性能测试与优化](#性能测试与优化)
+- [当前限制与后续规划](#当前限制与后续规划)
 
-## Current Version
+## 项目介绍
 
-**CareerHub v0.2**
+CareerHub 面向求职管理场景，提供用户信息管理、岗位检索、简历文件管理和基础认证能力。项目按 Controller → Service → Mapper 分层组织，使用 MyBatis-Plus 访问 MySQL，并在岗位详情查询中使用 Redis 实现 Cache Aside 缓存策略。
 
-Current milestone:
+目前已完成后端核心功能与 Service 层自动化测试，可在本地进行接口演示。**CareerAI（LLM / 简历智能分析等）属于后续规划，尚不是本版本已交付功能。** 本仓库也不以已完成 Docker 部署或生产环境上线作为当前状态。
 
-- Spring Boot backend structure
-- User REST API
-- MySQL persistence
-- MyBatis-Plus integration
-- Conditional query
-- Pagination
-- DTO-based request and response separation
-- Basic exception handling
-- Basic database and Linux practice
+## 核心功能
 
-The current User module can be demonstrated through a complete request chain:
+| 模块 | 已实现的主要能力 |
+| --- | --- |
+| 用户管理 | 用户创建、按 ID 查询、更新、删除；条件查询与分页 |
+| 身份认证 | 用户注册、登录、密码编码、JWT 签发与解析；当前用户资料接口的令牌校验 |
+| 岗位管理 | 岗位详情查询、创建/更新/删除、关键字与状态筛选、分页；岗位数量统计 |
+| Redis 缓存 | 岗位详情 Cache Aside、10 分钟 TTL、更新/删除时缓存失效、异常时回源处理 |
+| 简历管理 | PDF 文件上传、简历记录持久化、查询与删除、所属用户权限检查 |
+| 验证码 | 基于 Redis 的邮箱验证码业务逻辑；实际邮件投递能力以运行环境与当前实现为准 |
+| 工程质量 | 参数校验、业务异常处理、部分接口统一响应包装、自动化测试、性能基线与优化记录 |
 
-```text
-HTTP Client
-    ↓
-Controller
-    ↓
-Service
-    ↓
-Mapper
-    ↓
-MyBatis-Plus
-    ↓
-MySQL
+> **权限范围说明：** 当前项目存在 `AuthInterceptor` 和 `UserContext`。不同路由的拦截器注册范围及简历接口的授权链路，应以最新 `WebConfig`、Controller 和实际 HTTP 验证为准；不要将此表理解为“全部接口已经统一强制鉴权”。
+
+## 技术栈
+
+下表根据项目 `pom.xml` 核对，未在 `pom.xml` 中单独锁定版本的依赖采用 Spring Boot 依赖管理版本。
+
+| 分类 | 技术 |
+| --- | --- |
+| 语言与构建 | Java 17、Maven |
+| Web 框架 | Spring Boot 3.5.5、Spring Web MVC |
+| 数据访问 | MyBatis-Plus 3.5.12、MySQL Connector/J、MySQL 8（本地环境） |
+| 缓存 | Spring Data Redis、`StringRedisTemplate` |
+| 身份认证 | JJWT 0.13.0、Spring Security Crypto（密码编码） |
+| 参数校验 | Spring Boot Validation / Jakarta Validation |
+| API 文档 | SpringDoc OpenAPI 2.8.14 |
+| 测试 | Spring Boot Starter Test（JUnit 5、Mockito）、Maven Test |
+| 版本管理 | Git、GitHub |
+
+> 当前依赖包含 `spring-security-crypto`，**不等于**完整接入了 Spring Security Web 过滤器链；项目目前使用自定义拦截器处理部分 JWT 鉴权逻辑。
+
+## 系统架构
+
+```mermaid
+flowchart TD
+    Client[HTTP 客户端 / API 调试工具] --> Controllers[REST Controllers]
+    Controllers --> Services[Service 业务层]
+    Controllers --> Interceptor[部分路由的 JWT 拦截器]
+    Interceptor --> JWT[JwtService / UserContext]
+    Services --> Mappers[MyBatis-Plus Mappers]
+    Mappers --> MySQL[(MySQL)]
+    Services <--> Redis[(Redis)]
+    Services --> Files[(本地 uploads/resumes 文件目录)]
 ```
 
----
+主要职责：
 
-## Tech Stack
+- **Controller：** 接收参数、触发校验、调用业务服务并组织响应。
+- **Service：** 实现用户、岗位、简历、注册登录及验证码等业务规则。
+- **Mapper / MyBatis-Plus：** 执行 MySQL CRUD、条件查询、分页与计数。
+- **Redis：** 缓存岗位详情及支持验证码生命周期管理。
+- **文件存储：** 简历 PDF 保存于本地文件目录，业务元数据保存在数据库。
 
-- Java 17
-- Spring Boot 3.5.5
-- Maven
-- MySQL 8
-- MyBatis-Plus 3.5.12
-- REST API
-- Git
+## 技术设计要点
 
----
+### 1. 岗位详情 Cache Aside
 
-## Current Features
-
-### User Module
-
-The User module currently supports:
-
-- Create user
-- Get user by ID
-- Get all users
-- Update user
-- Delete user
-- Search users by username keyword
-- Filter users by status
-- Paginated user query
-- Combined query conditions
-
-User data is persisted in MySQL through MyBatis-Plus.
-
----
-
-## Project Structure
+岗位详情使用 `job:detail:{id}` 作为 Redis Key，缓存 TTL 为 **10 分钟**。
 
 ```text
-com.zzztie.careerhub
-├── config
-├── controller
-├── domain
-├── dto
-├── enums
-├── exception
-├── mapper
-├── repository
-│   └── memory
-├── service
-│   └── impl
-└── CareerHubApplication
+GET /jobs/{id}
+  ├─ Redis 命中：反序列化 Job 并返回
+  └─ Redis 未命中：MySQL 查询 → JSON 序列化 → 写入 Redis → 返回
 ```
 
-### Package Responsibilities
+更新或删除岗位后，执行对应详情缓存失效处理。对异常缓存 JSON 进行清理并回源；当 Redis 读取或写入发生数据访问异常时，以已实现的降级逻辑尽量保障数据库读取路径可用。缓存删除的失败重试和异常分支有对应单元测试。
 
-```text
-controller
-→ Receives HTTP requests and returns HTTP responses
+### 2. 岗位检索与按需计数
 
-service
-→ Handles business logic
+岗位搜索使用 MyBatis-Plus 条件构造器，支持关键字、岗位状态和分页。
 
-service.impl
-→ Service implementations
+在 `/jobs/count` 统计场景中，原实现通过 `getAllJobs().size()` 加载全部岗位后计数；现已新增 `countJobs()`，底层使用 `jobMapper.selectCount(null)` 在数据库侧执行计数，避免不必要的数据传输和 `Job` 对象映射。原 `getAllJobs()` 保留给实际需要列表的业务。
 
-mapper
-→ Database access through MyBatis-Plus
+### 3. 用户认证和业务校验
 
-domain
-→ Domain entities
+注册流程使用密码编码器保存密码哈希，登录流程验证凭据后由 `JwtService` 生成 JWT。部分接口使用 `ApiResponse` 统一返回格式，并通过 Bean Validation 与自定义异常处理改善错误反馈。
 
-dto
-→ Request and response objects
+### 4. 简历上传及文件边界
 
-enums
-→ Business enums
+上传流程先进行用户归属检查和用户存在性验证，再检查文件为空、`.pdf` 扩展名、`application/pdf` Content-Type 与最大 **5 MiB** 文件大小；文件使用 UUID 名称保存至本地 `uploads/resumes`，随后保存简历记录。
 
-exception
-→ Custom exceptions
+文件大小、扩展名和 MIME 类型校验属于基础防护，**不能替代对文件真实内容的深度检测**。数据库事务也不能自动回滚磁盘文件操作，文件与数据库的一致性仍是后续需要完善的部分。
 
-config
-→ Spring Boot / MyBatis-Plus configuration
+## 主要 API
 
-repository.memory
-→ Temporary in-memory implementations for unfinished modules
-```
+以下为已在交流或项目代码中确认的代表性路由。接口是否需要令牌，以及实际响应体结构，以当前 Controller 和接口文档为准。
 
----
+| 方法 | 路径 | 作用 |
+| --- | --- | --- |
+| `POST` | `/auth/register` | 用户注册 |
+| `POST` | `/auth/login` | 用户登录并获取 Token |
+| `GET` | `/user/profile` | 获取当前登录用户资料 |
+| `GET` | `/users/{id}` | 查询用户 |
+| `GET` | `/users/search` | 用户条件搜索 |
+| `GET` | `/users/page` | 用户分页查询 |
+| `GET` | `/jobs/{id}` | 岗位详情（Redis 缓存） |
+| `GET` | `/jobs/search` | 岗位关键字 / 状态 / 分页搜索 |
+| `GET` | `/jobs/count` | 获取岗位数量 |
+| `POST` | `/resumes/upload` | 上传简历 PDF |
+| `DELETE` | `/resumes/{id}` | 删除简历 |
 
-## User Request Flow
-
-A typical User request follows this flow:
-
-```text
-HTTP Request
-    ↓
-UserController
-    ↓
-UserService
-    ↓
-UserServiceImpl
-    ↓
-UserMapper
-    ↓
-MyBatis-Plus
-    ↓
-MySQL
-```
-
-The query result then returns through:
-
-```text
-MySQL
-    ↓
-User Entity
-    ↓
-Service
-    ↓
-Controller
-    ↓
-UserResponse
-    ↓
-JSON Response
-```
-
----
-
-## DTO Design
-
-The User module currently uses DTOs to separate the HTTP API from the internal domain model.
-
-### CreateUserRequest
-
-Used when creating a user.
-
-```text
-POST /users
-        ↓
-CreateUserRequest
-        ↓
-User
-```
-
-### UpdateUserRequest
-
-Used when updating a user.
-
-```text
-PUT /users/{id}
-        ↓
-UpdateUserRequest
-        ↓
-User
-```
-
-### UserResponse
-
-Used when returning User data to the client.
-
-```text
-User Entity
-    ↓
-UserResponse
-    ↓
-HTTP JSON Response
-```
-
-This prevents the API layer from directly exposing the complete internal `User` entity.
-
----
-
-## User API
-
-### Create User
+已核对的查询示例：
 
 ```http
-POST /users
+GET /jobs/search?keyword=Java&status=OPEN&page=1&size=10
+GET /jobs/1
+GET /jobs/count
 ```
 
-Example request:
+仓库中另有 [API 错误处理规范](docs/api-error-spec.md)。项目集成了 SpringDoc OpenAPI，若未修改默认路径且服务正常启动，可尝试访问 `http://localhost:8080/swagger-ui/index.html`；最终以实际运行配置为准。
 
-```json
-{
-  "username": "Jerry",
-  "email": "jerry@example.com"
-}
-```
+## 数据库与项目结构
 
----
-
-### Get User by ID
-
-```http
-GET /users/{id}
-```
-
-Example:
-
-```http
-GET /users/8
-```
-
----
-
-### Get All Users
-
-```http
-GET /users
-```
-
----
-
-### Update User
-
-```http
-PUT /users/{id}
-```
-
-Example request:
-
-```json
-{
-  "username": "JerryUpdated",
-  "email": "jerry_updated@example.com"
-}
-```
-
----
-
-### Delete User
-
-```http
-DELETE /users/{id}
-```
-
----
-
-## User Search
-
-The project supports dynamic query conditions through MyBatis-Plus `LambdaQueryWrapper`.
-
-Example:
-
-```http
-GET /users/search?keyword=e
-```
-
-Search by user status:
-
-```http
-GET /users/search?userStatus=ACTIVE
-```
-
-Combined query:
-
-```http
-GET /users/search?keyword=e&userStatus=ACTIVE
-```
-
-Internally, query conditions are dynamically constructed according to the parameters provided by the client.
-
-Example logic:
+数据库核心实体包括 `User`、`Job`、`Resume`。其中用户与简历为一对多业务关系，简历通过 `userId` 关联所属用户。数据库初始化 SQL 位于 `sql/` 目录；具体字段、约束和索引请以最新 `sql/schema.sql` 为准。
 
 ```text
-keyword exists
-→ username LIKE '%keyword%'
-
-userStatus exists
-→ status = userStatus
-
-both exist
-→ combine the two conditions
+CareerHub/
+├── src/
+│   ├── main/
+│   │   ├── java/com/zzztie/careerhub/
+│   │   │   ├── config/           # 配置
+│   │   │   ├── context/          # 当前用户上下文
+│   │   │   ├── controller/       # REST API
+│   │   │   ├── domain/           # 领域实体
+│   │   │   ├── dto/              # 请求和响应 DTO
+│   │   │   ├── enums/            # 状态枚举
+│   │   │   ├── exception/        # 业务异常处理
+│   │   │   ├── interceptor/      # 身份校验拦截器
+│   │   │   ├── mapper/           # MyBatis-Plus 数据访问
+│   │   │   └── service/          # 接口与实现
+│   │   └── resources/            # Spring Boot 配置
+│   └── test/java/.../service/impl/  # Service 自动化测试
+├── docs/                         # 项目说明与相关文档
+├── sql/                          # 数据库脚本
+├── pom.xml
+└── README.md
 ```
 
----
+`uploads/` 是运行时文件存储目录，不应作为真实简历数据提交到公开 Git 仓库。
 
-## Pagination
+## 本地启动
 
-The User module supports paginated queries.
-
-Example:
-
-```http
-GET /users/page?pageNum=1&pageSize=3
-```
-
-Combined with keyword search:
-
-```http
-GET /users/page?keyword=e&pageNum=1&pageSize=3
-```
-
-Combined with status filtering:
-
-```http
-GET /users/page?userStatus=ACTIVE&pageNum=1&pageSize=3
-```
-
-Pagination currently returns information such as:
-
-```text
-current
-size
-total
-records
-```
-
-The records returned by the API are converted from `User` entities to `UserResponse`.
-
----
-
-## Database
-
-Current database:
-
-```text
-careerhub
-```
-
-Current main tables:
-
-```text
-user
-resume
-job
-```
-
-### Current Persistence Status
-
-```text
-User
-→ MyBatis-Plus
-→ MySQL
-```
-
-The User module has completed database persistence.
-
-The Resume and Job modules are still under development and currently retain temporary in-memory repository implementations.
-
-They will be migrated to persistent storage in later versions.
-
----
-
-## Database Relationships
-
-Current basic relationship:
-
-```text
-User 1 : N Resume
-```
-
-The `resume.user_id` field references the corresponding User.
-
-Example:
-
-```text
-user.id = resume.user_id
-```
-
-Basic `LEFT JOIN` and `INNER JOIN` queries have also been practiced for multi-table querying.
-
----
-
-## Query and Database Capabilities
-
-Current database-related capabilities include:
-
-- SELECT
-- INSERT
-- UPDATE
-- DELETE
-- WHERE
-- LIKE
-- ORDER BY
-- LIMIT
-- Pagination
-- LEFT JOIN
-- INNER JOIN
-- Unique constraints
-- Basic indexes
-- Basic transaction concepts
-- MyBatis-Plus CRUD
-- LambdaQueryWrapper
-
----
-
-## Local Development
-
-### Requirements
+### 环境要求
 
 - JDK 17
-- Maven
-- MySQL 8
-
-### Database
-
-Create a MySQL database:
-
-```sql
-CREATE DATABASE careerhub;
-```
-
-Database schema files are stored in:
-
-```text
-sql/
-```
-
-Configure the local datasource before starting the project.
-
-Do not commit real database passwords or other secrets to the public repository.
-
----
-
-## Run the Application
-
-The main Spring Boot entry point is:
-
-```text
-CareerHubApplication
-```
-
-The application can be started from IntelliJ IDEA or Maven.
-
-After startup, the API is available locally, for example:
-
-```text
-http://localhost:8080
-```
-
----
-
-## Current Architecture
-
-```text
-                HTTP Request
-                     ↓
-              UserController
-                     ↓
-               UserService
-                     ↓
-            UserServiceImpl
-                     ↓
-                UserMapper
-                     ↓
-              MyBatis-Plus
-                     ↓
-                   MySQL
-                     ↓
-              User Entity
-                     ↓
-              UserResponse
-                     ↓
-                JSON Response
-```
-
----
-
-## Development Status
-
-### Completed
-
-- Java backend project structure
-- Git workflow
-- Spring Boot integration
-- REST API basics
-- Controller / Service / DTO separation
-- MySQL table design
-- User persistence
-- MyBatis-Plus integration
-- User CRUD
-- Conditional queries
-- Pagination
-- Basic JOIN queries
-- Basic database indexes and transactions
-- Basic Linux commands and log inspection
-
-### In Progress / Planned
-
-- Parameter validation
-- Global exception handling
-- Unified API response
-- Swagger / OpenAPI
-- Password security
-- JWT authentication
-- Request authentication
-- Redis integration
-- Cache strategy
-- Resume file upload and management
-- Job module persistence
-- Job search
-- Automated testing
-- Index optimization
-- Performance baseline
-- Docker deployment
-- AI integration
-- CareerAI integration
-
----
-
-## Roadmap
-
-### CareerHub v0.2
-
-Current version.
-
-Main goal:
-
-```text
-Spring Boot
-+ MySQL
-+ MyBatis-Plus
-+ User REST API
-+ Pagination
-```
-
-### CareerHub v0.5
-
-Planned:
-
-- JWT authentication
+- Maven（使用项目根目录的 `pom.xml`）
+- MySQL 8 / 兼容环境
 - Redis
-- Resume module
-- Job module
-- Global exception handling
-- OpenAPI documentation
+- IntelliJ IDEA（可选）
 
-### CareerHub v1.0
+### 1. 初始化数据库
 
-Planned:
+按 `sql/schema.sql` 中的实际 SQL 初始化本地数据库，并核对项目使用的数据库名称、账号与权限。不要将真实数据库密码提交到仓库。
 
-- Automated testing
-- Database optimization
-- Performance baseline
-- Complete README and architecture documentation
-- Deployable project version
+### 2. 配置应用
 
-### CareerAI
+按照 `src/main/resources/application.yml` 及实际使用的环境配置（例如 `application-dev.yml`）填写 MySQL、Redis 等连接信息。
 
-CareerAI will be developed after the CareerHub backend foundation is stable.
+**必须为启动 Java 进程配置环境变量 `JWT_SECRET`。** 已知当前项目的 JWT 配置通过 `${JWT_SECRET}` 读取密钥。请使用符合当前 `JwtService` 要求的随机密钥，勿在公开仓库或 README 中填写真实值。
 
-Planned capabilities include:
+若使用 IntelliJ IDEA，请在 **Run → Edit Configurations → CareerHubApplication → Environment variables** 中配置，并使用该运行配置启动。直接通过其他运行入口启动时，环境变量可能不会自动继承。
 
-- LLM integration
-- Resume analysis
-- Job matching
-- RAG
-- Tool Calling
-- Agent workflow
+如通过 PowerShell 启动，应先在**同一终端会话**中设置变量（`<your-secret>` 仅为占位符，不要原样使用）：
 
-CareerAI will later interact with CareerHub through backend APIs.
+```powershell
+$env:JWT_SECRET = "<your-secret>"
+mvn spring-boot:run
+```
 
----
+> 其他必需环境变量、端口及 Profile 应以实际配置文件为准；此处不推测尚未核验的具体变量名。
 
-## Project Goal
+### 3. 验证运行
 
-The goal of CareerHub is not only to implement features, but also to build a backend project whose architecture and technical decisions can be clearly explained.
+成功启动后，若端口为默认的 `8080`，可在 PowerShell 中运行：
 
-Current development principle:
+```powershell
+Invoke-RestMethod -Uri "http://localhost:8080/jobs/count" -Method Get
+```
 
-> Build a complete, stable, and explainable Java backend foundation before adding AI capabilities.
+### 4. 运行自动化测试
 
----
+在项目根目录：
 
-## Status
-
-**Active development**
-
-Current milestone:
-
-```text
-CareerHub v0.2
-User module end-to-end workflow completed
+```powershell
+mvn test
 ```
 
 ## 自动化测试
 
-### 测试技术
+项目通过 JUnit 5 与 Mockito 对核心 Service 逻辑进行单元测试。以下为当前已完成并经 `mvn test` 整体运行通过的测试集。
 
-项目使用 JUnit 5、Mockito 和 Maven Surefire 进行 Service 层单元测试。
+| 测试类 | 用例数 | 代表场景 |
+| --- | ---: | --- |
+| `JobServiceImplTest` | 9 | 缓存 HIT/MISS、缓存损坏回源、删除/更新缓存失效、Redis 失败重试 |
+| `UserServiceImplTest` | 8 | 用户 CRUD、存在与不存在的分支 |
+| `AuthServiceImplTest` | 3 | 注册密码编码、登录成功生成 JWT、错误密码拒绝登录 |
+| `ResumeServiceImplTest` | 1 | 空文件上传拒绝，且不调用文件保存与 Mapper 插入 |
+| **合计** | **21** | **Service 层核心正常与异常路径** |
 
-### 测试执行
+最近一次已确认的 Maven 全量验收结果：**21 个测试通过，0 Failure，0 Error**。
 
-在项目根目录运行：
-
-`mvn test`
-
-当前测试结果：
-
-- Tests run: 20
-- Failures: 0
-- Errors: 0
-- Skipped: 0
-- BUILD SUCCESS
-
-### 核心测试场景
-
-| 模块 | 测试内容 |
-|---|---|
-| JobService | 岗位查询、更新和删除；Redis 缓存命中、未命中、损坏数据回源及缓存失效重试 |
-| UserService | 用户创建、查询、更新、删除及用户不存在的异常处理 |
-| AuthService | 用户注册、登录成功生成 JWT、密码错误时拒绝登录并禁止生成 JWT |
-
-### 测试策略
-
-1. 使用 Mockito 模拟 Mapper、Redis、密码编码器等外部依赖，独立验证 Service 业务逻辑。
-2. 使用 JUnit 断言验证返回结果和异常。
-3. 使用 Mockito `verify()` 验证关键依赖调用次数和执行行为。
-4. 同时覆盖正常路径与重要异常路径，尤其关注数据不存在、缓存故障和认证失败。
-
-### 当前测试范围说明
-
-当前 21 个测试主要为 Service 层单元测试，不能替代真实数据库、Redis 或 HTTP 接口的集成测试。
-
-文件上传相关业务、Controller 接口及完整认证流程仍需要进一步测试，后续可继续补充。
-
-### ResumeService 文件上传边界测试
-
-新增 `uploadResume_whenFileEmpty_shouldThrowAndNotSave` 测试用例。
-
-该测试使用 Mockito 模拟用户查询和当前登录用户身份，验证：
-
-- 当前用户具有对应简历操作权限。
-- 上传文件为空时，抛出 `IllegalArgumentException`。
-- 不调用 `MultipartFile.transferTo()` 写入磁盘。
-- 不调用 `ResumeMapper` 操作简历数据库。
-
-**当前未覆盖：** 真实 PDF 上传、文件大小限制、文件类型校验的其他分支、磁盘写入失败及文件删除时的数据库与磁盘一致性处理。
-
-### U34｜岗位数量统计接口性能优化
-
-**优化目标：** 减少岗位数量统计接口不必要的数据读取与对象映射。
-
-**原始实现：** `JobService.getAllJobs().size()`，底层使用 MyBatis-Plus `selectList(null)` 查询全部岗位记录。
-
-**优化实现：** 新增 `JobService.countJobs()`，底层使用 `selectCount(null)` 执行数据库计数查询，保留原有 `getAllJobs()` 方法。
-
-**测试环境与方式：**
-- 本机 Spring Boot + MySQL 环境
-- 测试接口：`GET /jobs/count`
-- 岗位数据：5 条
-- 每组预热 5 次，正式顺序请求 30 次
-- PowerShell `Stopwatch` 统计客户端 HTTP 响应时间
-
-| 指标 | 优化前 | 优化后 |
-|---|---:|---:|
-| 平均响应时间 | 2.69 ms | 2.00 ms |
-| P95 响应时间 | 4.66 ms | 2.48 ms |
-
-**测试结果：** 当前环境下平均响应时间降低约 25.7%，P95 延迟降低约 46.8%。
-
-**结论：** 采用数据库计数查询，避免为统计记录数量而加载完整岗位对象。当前性能数据来自小数据量本地实验，不代表生产环境或高
-并发条件下的改善幅度。
+测试采用模拟依赖验证业务逻辑，**不等同于真实 MySQL / Redis / HTTP 链路的端到端集成测试**。真实 PDF 上传、完整文件异常场景、Controller 集成测试及认证链路仍有补充空间。
 
 ## 性能测试与优化
 
-### 1. Redis 岗位详情缓存性能对照
+以下均为 **本地开发环境下的实际观测结果**，不是生产环境或高并发测试结论。
 
-针对 `GET /jobs/{id}` 接口，对 Redis Cache Aside 的缓存命中和未命中路径进行了 10 轮成对测量。
+### 1. Redis 缓存命中与未命中
 
-| 场景 | 平均 HTTP 响应时间 |
-|---|---:|
+针对 `GET /jobs/1`，通过删除指定 Redis Key、确认 MISS、发起请求并检查回填，再测 HIT，完成 **10 轮成对、顺序 HTTP 请求**：
+
+| 场景 | 平均客户端 HTTP 响应时间 |
+| --- | ---: |
 | Cache MISS | 5.41 ms |
 | Cache HIT | 3.35 ms |
 
-在本地实验环境中，缓存命中路径的平均响应延迟比未命中路径降低约 38.1%。
+在这组实验条件下，HIT 路径的平均 HTTP 延迟比 MISS 路径低约 **38.1%**。这属于**两条缓存路径的效果对照**，不是一次代码版本优化的前后对比。
 
-通过分段计时进一步分析发现，预热后 MyBatis `selectById()` 的平均调用耗时约 2.13 ms；首次数据库调用存在明显的额外开销，因此未直接将首次高耗时判定为慢 SQL。
+分段计时还发现，首次 MyBatis `selectById()` 调用耗时显著高于预热后；后续 5 次 DB 回源的 MyBatis 调用平均约 **2.13 ms**。单次首次调用的高耗时不能直接等同于慢 SQL。
 
-### 2. 岗位数量统计接口优化
+### 2. `/jobs/count` 查询优化
 
-**优化前：**
+- **优化前：** `getAllJobs().size()`，底层 `selectList(null)`，查询全部岗位并映射为 `List<Job>`。
+- **优化后：** 新增 `countJobs()`，底层 `selectCount(null)`，由数据库直接返回记录数量。
 
-`GET /jobs/count` 通过 `getAllJobs().size()` 获取数量，底层执行 `selectList(null)`，需要加载所有岗位记录。
+测试条件：本机 HTTP 顺序请求、数据库 **5 条岗位记录**、两组各预热 **5 次**、正式测量 **30 次**，使用 PowerShell `Stopwatch` 记录客户端总耗时。
 
-**优化后：**
-
-新增 `JobService.countJobs()`，通过 MyBatis-Plus `selectCount(null)` 在数据库中直接统计岗位数量，避免不必要的数据读取与对象映射。
-
-| 性能指标 | 优化前 | 优化后 |
-|---|---:|---:|
-| 平均响应时间 | 2.69 ms | 2.00 ms |
+| 指标 | 优化前 | 优化后 |
+| --- | ---: | ---: |
+| 平均 HTTP 响应时间 | 2.69 ms | 2.00 ms |
 | P95 响应时间 | 4.66 ms | 2.48 ms |
 
-**实验结论：**
+本轮测量观察到平均延迟降低约 **25.7%**、P95 降低约 **46.8%**。由于数据量较小、每组样本仅 30 次，差值可能受到 JVM、连接状态及系统调度影响，不能将这一比例直接推广到大数据量或生产环境。该优化更稳定的工程收益是**避免为计数加载所有岗位实体**。
 
-在当前本地环境中，平均响应延迟降低约 25.7%，P95 延迟降低约 46.8%。
+## 当前限制与后续规划
 
-**测试条件与限制：**
+当前为后端 v1.0 **发布候选版**，正式打 Tag / 公开发布前应核对：
 
-- Spring Boot + MySQL + Redis，本机 HTTP 顺序请求
-- 岗位数据量：5 条
-- 优化前后各预热 5 次、正式测量 30 次
-- 使用 PowerShell Stopwatch 记录客户端请求耗时
-- 数据量较小，测试结果不能直接推广到生产环境或高并发场景
+- [ ] **安全：** 检查提交历史是否曾包含 `requests.http` 中的真实 Token、密码等；可能泄露的凭据应及时作废或轮换。`.gitignore` 和取消跟踪不能抹除旧提交历史。
+- [ ] **权限：** 验证最新 `WebConfig` 的 JWT 拦截范围，以及简历上传、查询、下载、删除的授权链路。
+- [ ] **配置：** 确认本地启动说明与实际 `application*.yml` 一致，配置中不包含真实密钥。
+- [ ] **验证：** 在拟发布 Commit 上重新执行 `mvn test`，确认 HTTP 核心接口可正常访问。
+- [ ] **版本：** 完成 README 审查后再创建并推送 `v1.0` Git Tag。
 
-### 3. 自动化回归测试
-
-使用 JUnit 5、Mockito 和 Maven 对核心 Service 业务进行回归测试。
-
-`mvn test`
-
-当前 21 个自动化测试已全部通过。
+后续迭代方向包括更完整的 Controller / 集成测试、文件存储与数据库一致性处理、复杂场景压测、容器化部署，以及独立的 **CareerAI** 智能简历分析与求职辅助功能。
