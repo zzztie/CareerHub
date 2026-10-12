@@ -1,9 +1,14 @@
 package com.zzztie.careerhub.domain;
 
+import com.baomidou.mybatisplus.annotation.TableName;
+import com.zzztie.careerhub.enums.JobStatus;
+
+@TableName("job")
 public class Job extends BaseEntity implements Describable {
     private String title;
     private String company;
     private String description;
+    private JobStatus status;
 
     public Job() {
     }
@@ -57,4 +62,11 @@ public class Job extends BaseEntity implements Describable {
         return "Job:"+getTitle()+"at"+getCompany();
     }
 
+    public JobStatus getStatus() {
+        return status;
+    }
+
+    public void setStatus(JobStatus status) {
+        this.status = status;
+    }
 }

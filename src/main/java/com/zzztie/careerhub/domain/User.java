@@ -10,6 +10,16 @@ public class User extends BaseEntity implements Describable {
     private String username;
     private String email;
     private UserStatus status;
+    private String passwordHash;
+
+    public String getPasswordHash() {
+        return passwordHash;
+    }
+
+    public void setPasswordHash(String passwordHash) {
+
+        this.passwordHash = passwordHash;
+    }
 
     public UserStatus getStatus() {
         return status;

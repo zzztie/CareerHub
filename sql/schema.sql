@@ -23,9 +23,10 @@ create table resume(
 
 create table job(
                     id bigint primary key auto_increment,
-                    title varchar(100) not null ,
-                    company varchar(100) not null ,
-                    description varchar(2000),
-                    create_time datetime not null ,
+                    title varchar(100) not null,
+                    company varchar(100) not null,
+                    description text,
+                    status varchar(20) not null default 'OPEN',
+                    create_time datetime not null,
                     update_time datetime not null
 );

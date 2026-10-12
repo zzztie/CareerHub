@@ -1,5 +1,8 @@
 package com.zzztie.careerhub.domain;
 
+import com.baomidou.mybatisplus.annotation.TableName;
+
+@TableName("resume")
 public class Resume extends BaseEntity implements Describable {
     private Long userId;
     private String fileName;
